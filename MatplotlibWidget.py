@@ -59,11 +59,37 @@ class MyMplCanvas(FigureCanvas):
     def update_figure(self):
         self.fig.suptitle('测试动态图')
         l = [random.randint(0, 10) for i in range(4)]
+        self.axes.cla()
         self.axes.plot([0, 1, 2, 3], l, 'r')
         self.axes.set_ylabel('动态图：Y轴')
         self.axes.set_xlabel('动态图：X轴')
         self.axes.grid(True)
         self.draw()
+
+    def plotFileData(self, ChannelNum, RawData_Martix_I_1, RawData_Martix_Q_1, RawData_Martix_I_2, RawData_Martix_Q_2):
+        self.ChannelNum = ChannelNum
+        self.RawData_Martix_I_1 = RawData_Martix_I_1
+        self.RawData_Martix_Q_1 = RawData_Martix_Q_1
+        self.RawData_Martix_I_2 = RawData_Martix_I_2
+        self.RawData_Martix_Q_2 = RawData_Martix_Q_2
+        self.ChirpNum, self.ChirpLen = RawData_Martix_I_1.shape
+        self.curPlotChirp = 0
+
+        timer = QtCore.QTimer(self)
+        timer.timeout.connect(self.update_FileData_Figure)
+        timer.start(1)
+
+    def update_FileData_Figure(self):
+        self.fig.suptitle('Chirp图形: ')
+        print(self.curPlotChirp)
+        self.axes.cla()
+        self.axes.plot(self.RawData_Martix_I_1[self.curPlotChirp])
+        self.curPlotChirp += 1
+        self.axes.set_ylabel('Y轴')
+        self.axes.set_xlabel('X轴')
+        self.axes.grid(True)
+        self.draw()
+
 
 
 class MatplotlibWidget(QWidget):
