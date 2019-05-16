@@ -5,13 +5,22 @@ from PyQt5.QtCore import pyqtSlot
 
 from CommArithmetic import *
 from GestureArithmetic import *
+from DataRecvThread import *
+from DataAlgThread import *
+from queue import Queue
 
 import numpy as np
 
 class MyMainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self,parent=None):
         super(MyMainWindow, self).__init__(parent)
+        self.fftShareBuf = np.zeros([32,256],dtype=np.complex)
         self.setWindowTitle('BanYan Demo')
+        self.algThread = DataAlgThread()
+        self.recvThread = DataRecvThread()
+        self.recvQueue = Queue(10)
+        self.sendQueue = Queue(50)
+        self.algThread.SetParam(self.recvQueue,self.sendQueue,self.fftShareBuf)
         
         self.setupUi(self)
         self.widget.setVisible(True)
@@ -67,29 +76,22 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
     ## 连接/目录 按钮 slot
     @pyqtSlot()
     def on_bt_connect_clicked(self):
+        self.algThread.start()
         if self.devSelect is 0:
             print('ToDo')
         elif self.devSelect is 1:
             print('ToDo')
         elif self.devSelect is 2:
             file,ok = QFileDialog.getOpenFileName(self, "打开文件", "./", "Data Files (*.dat);;Text Files (*.txt)")
-            adcData = np.fromfile(file,dtype = np.int16)
-            print('ReadFromFile')
-            self.RawData_I_1 = adcData[::4]
-            self.RawData_Q_1 = adcData[1::4]
-            self.RawData_I_2 = adcData[3::4]
-            self.RawData_Q_2 = adcData[4::4]
-            self.timer = QtCore.QTimer(self)
-            self.timer.timeout.connect(self.find_chirp)
-            self.timer.start(10)  # 触发的时间间隔为10毫秒
-            print('ReadFromFile End')
+            self.recvThread.SetParam(2,file,self.recvQueue)
 
     @pyqtSlot()
     def on_bt_start_clicked(self):
         #if self.devSelect == 2:
-
+        self.recvThread.start()
         self.widget.setVisible(True)
-        self.widget.mpl.plotFileData(4,self.RawData_Martix_I_1, self.RawData_Martix_Q_1, self.RawData_Martix_I_2, self.RawData_Martix_Q_2)
+        #self.widget.mpl.plotFileData(4,self.RawData_Martix_I_1, self.RawData_Martix_Q_1, self.RawData_Martix_I_2, self.RawData_Martix_Q_2)
+        self.widget.mpl.plotData(self.sendQueue)
         #self.widget_2.setVisible(True)
         #self.widget_2.mpl.start_dynamic_plot()
 

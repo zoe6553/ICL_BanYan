@@ -66,7 +66,7 @@ class MyMplCanvas(FigureCanvas):
         self.axes.grid(True)
         self.draw()
 
-    def plotFileData(self, ChannelNum, RawData_Martix_I_1, RawData_Martix_Q_1, RawData_Martix_I_2, RawData_Martix_Q_2):
+    def plotFileData(self, ChannelNum, RawData_Martix_I_1, RawData_Martix_Q_1=None, RawData_Martix_I_2=None, RawData_Martix_Q_2=None):
         self.ChannelNum = ChannelNum
         self.RawData_Martix_I_1 = RawData_Martix_I_1
         self.RawData_Martix_Q_1 = RawData_Martix_Q_1
@@ -79,16 +79,30 @@ class MyMplCanvas(FigureCanvas):
         timer.timeout.connect(self.update_FileData_Figure)
         timer.start(1)
 
+    def plotData(self, sendqueue):
+        self.sendQueue = sendqueue
+        self.curPlotChirp = 0
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.update_FileData_Figure)
+        self.timer.start(100)
+
     def update_FileData_Figure(self):
-        self.fig.suptitle('Chirp图形: ')
-        print(self.curPlotChirp)
-        self.axes.cla()
-        self.axes.plot(self.RawData_Martix_I_1[self.curPlotChirp])
-        self.curPlotChirp += 1
-        self.axes.set_ylabel('Y轴')
-        self.axes.set_xlabel('X轴')
-        self.axes.grid(True)
-        self.draw()
+        result = self.sendQueue.get()
+        if result.size == 4:
+            print('will stop')
+            self.timer.stop()
+        else:
+            self.sendQueue.queue.clear()
+            self.fig.suptitle('Chirp图形: ')
+            result_abs = abs(result[1])
+            #print(self.curPlotChirp)
+            self.axes.cla()
+            self.axes.plot(result_abs[2:])
+            self.curPlotChirp += 1
+            self.axes.set_ylabel('Y轴')
+            self.axes.set_xlabel('X轴')
+            self.axes.grid(True)
+            self.draw()
 
 
 
