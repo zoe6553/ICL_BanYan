@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import matplotlib
+#import ICL_USB
 
 matplotlib.use("Qt5Agg")
 from PyQt5 import QtCore
@@ -93,17 +94,25 @@ class MyMplCanvas(FigureCanvas):
             self.timer.stop()
         else:
             self.sendQueue.queue.clear()
-            self.fig.suptitle('Chirp图形: ')
-            result_abs = abs(result[1])
-            #print(self.curPlotChirp)
+            self.fig.suptitle('串口原始数据: ')
             self.axes.cla()
-            self.axes.plot(result_abs[2:])
+            self.axes.plot(result)
             self.curPlotChirp += 1
             self.axes.set_ylabel('Y轴')
             self.axes.set_xlabel('X轴')
             self.axes.grid(True)
             self.draw()
 
+            #self.fig.suptitle('一维FFT: ')
+            #result_abs = abs(result[1])
+            ##print(self.curPlotChirp)
+            #self.axes.cla()
+            #self.axes.plot(result_abs[2:])
+            #self.curPlotChirp += 1
+            #self.axes.set_ylabel('Y轴')
+            #self.axes.set_xlabel('X轴')
+            #self.axes.grid(True)
+            #self.draw()
 
 
 class MatplotlibWidget(QWidget):

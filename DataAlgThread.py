@@ -45,6 +45,8 @@ class DataAlgThread(QThread):
     def run(self):
         while self.working is True:
             RawDataMartix = self.recvQueue.get()
+            self.sendQueue.put(RawDataMartix)
+            continue
             channelnum, chirpnum, chirplen = RawDataMartix.shape
             if (channelnum == 1) and (chirpnum == 2) and (chirplen == 3):
                 print('send end frame')
