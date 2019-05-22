@@ -80,8 +80,9 @@ class MyMplCanvas(FigureCanvas):
         timer.timeout.connect(self.update_FileData_Figure)
         timer.start(1)
 
-    def plotData(self, sendqueue):
+    def plotData(self, sendqueue,title):
         self.sendQueue = sendqueue
+        self.title = title
         self.curPlotChirp = 0
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.update_FileData_Figure)
@@ -94,7 +95,7 @@ class MyMplCanvas(FigureCanvas):
             self.timer.stop()
         else:
             self.sendQueue.queue.clear()
-            self.fig.suptitle('串口原始数据: ')
+            self.fig.suptitle(self.title)
             self.axes.cla()
             self.axes.plot(result)
             self.curPlotChirp += 1

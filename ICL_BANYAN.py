@@ -23,7 +23,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         self.recvThread = DataRecvThread()
         self.recvQueue = Queue(10)
         self.sendQueue = Queue(50)
-        self.algThread.SetParam(self.recvQueue,self.sendQueue,self.fftShareBuf)
+        self.resultQueue = Queue(50)
         
         self.setupUi(self)
         self.widget.setVisible(True)
@@ -96,6 +96,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
     ## 连接/目录 按钮 slot
     @pyqtSlot()
     def on_bt_connect_clicked(self):
+        self.algThread.SetParam(self.devSelect, self.recvQueue,self.sendQueue,self.resultQueue,self.fftShareBuf)
         self.algThread.start()
         if self.devSelect is enum.USB_SERIAL:
             print('ToDo')
@@ -109,6 +110,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
             self.serial.port        = SerialName
             self.serial.timeout     = 2
             self.recvThread.SetParam(enum.UART_SERIAL,self.serial,self.recvQueue)
+
             #if self.serial.is_open:
             #    self.serial.close()
             #self.serial.open()
@@ -124,19 +126,23 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         self.recvThread.start()
         self.widget.setVisible(True)
         #self.widget.mpl.plotFileData(4,self.RawData_Martix_I_1, self.RawData_Martix_Q_1, self.RawData_Martix_I_2, self.RawData_Martix_Q_2)
-        self.widget.mpl.plotData(self.sendQueue)
+        self.widget.mpl.plotData(self.sendQueue,'串口原始数据')
+
+        self.widget_2.setVisible(True)
+        self.widget_2.mpl.plotData(self.resultQueue,'快速傅里叶变换')
         #self.widget_2.setVisible(True)
         #self.widget_2.mpl.start_dynamic_plot()
 
     @pyqtSlot()
     def on_bt_finish_clicked(self):
+        print('click finish button')
         self.algThread.working = False
-        self.algThread.quit()
-        self.algThread.wait()
+        #self.algThread.quit()
+        #self.algThread.wait()
 
         self.recvThread.working = False
-        self.recvThread.quit()
-        self.recvThread.wait()
+        #self.recvThread.quit()
+        #self.recvThread.wait()
 
         self.close()
 ## #####################################################################

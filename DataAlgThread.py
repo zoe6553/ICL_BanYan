@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import *
 from CommArithmetic import *
 from GestureArithmetic import *
 from queue import Queue
+from PreDefine import enum
+from PreDefine import RadarParam
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,46 +39,56 @@ class DataAlgThread(QThread):
         super(DataAlgThread,self).__init__(parent)
         self.working = True
 
-    def SetParam(self, recvQueue, sendQueue, shareFFTBuf):
+    def SetParam(self, DevSelection,recvQueue, sendQueue, resultQueue,shareFFTBuf):
+        self.DevSelection = DevSelection
         self.recvQueue = recvQueue
         self.sendQueue = sendQueue
         self.shareFFTBuf = shareFFTBuf
+        self.resultQueue = resultQueue
 
     def run(self):
         while self.working is True:
             RawDataMartix = self.recvQueue.get()
-            self.sendQueue.put(RawDataMartix)
-            continue
-            channelnum, chirpnum, chirplen = RawDataMartix.shape
-            if (channelnum == 1) and (chirpnum == 2) and (chirplen == 3):
-                print('send end frame')
-                self.sendQueue.queue.clear()
-                self.sendQueue.put(np.arange(4))
-            else:
-                I_1_Martix = RawDataMartix[0]
-                Q_1_Martix = RawDataMartix[1]
-                I_2_Martix = RawDataMartix[2]
-                Q_2_Martix = RawDataMartix[3]
+            if self.DevSelection == enum.UART_SERIAL:
+                self.sendQueue.put(RawDataMartix)
+                RawDataMartix = RawDataMartix - np.mean(RawDataMartix)
+                RawData_Range_FFT = np.fft.fft(RawDataMartix*np.hamming(256))
+                RawData_Range_FFT_ABS = abs(RawData_Range_FFT)
+                self.resultQueue.put(RawData_Range_FFT_ABS[2:32])
+            elif self.DevSelection == enum.FILE_SOURCE:
+                channelnum, chirpnum, chirplen = RawDataMartix.shape
+                if (channelnum == 1) and (chirpnum == 2) and (chirplen == 3):
+                    print('send end frame')
+                    self.sendQueue.queue.clear()
+                    self.sendQueue.put(np.arange(4))
+                    self.resultQueue.queue.clear()
+                    self.resultQueue.put(np.arange(4))
+                    self.working = False
+                else:
+                    I_1_Martix = RawDataMartix[0]
+                    Q_1_Martix = RawDataMartix[1]
+                    I_2_Martix = RawDataMartix[2]
+                    Q_2_Martix = RawDataMartix[3]
 
-                ## 降采样
-                RawData_Martix_1 = DownSample(I_1_Martix, Q_1_Martix)
-                RawData_Martix_2 = DownSample(I_2_Martix, Q_2_Martix)
+                    ## 降采样
+                    RawData_Martix_1 = DownSample(I_1_Martix, Q_1_Martix)
+                    RawData_Martix_2 = DownSample(I_2_Martix, Q_2_Martix)
 
-                ## RangeFFT
-                RawData_Range_FFT_1 = RangeFFT_Module(RawData_Martix_1)
-                RawData_Range_FFT_2 = RangeFFT_Module(RawData_Martix_2)
+                    ## RangeFFT
+                    RawData_Range_FFT_1 = RangeFFT_Module(RawData_Martix_1)
+                    RawData_Range_FFT_2 = RangeFFT_Module(RawData_Martix_2)
 
-                self.shareFFTBuf = RawData_Range_FFT_1.copy()
+                    self.shareFFTBuf = RawData_Range_FFT_1.copy()
+                    self.sendQueue.put(RawData_Martix_1[0])
+                    self.resultQueue.put(abs(RawData_Range_FFT_1[0,2:32]))
+                    continue
 
-                self.sendQueue.put(RawData_Range_FFT_1)
-                continue
+                    ## Cluster remove
+                    K=0.8
+                    RawData_Out_1 = ClusterRemove(RawData_Range_FFT_1, K)
+                    RawData_Out_2 = ClusterRemove(RawData_Range_FFT_2, K)
 
-                ## Cluster remove
-                K=0.8
-                RawData_Out_1 = ClusterRemove(RawData_Range_FFT_1, K)
-                RawData_Out_2 = ClusterRemove(RawData_Range_FFT_2, K)
-
-                ## Feature in range domain
-                RangePos, PhaseValue = Feature_in_RangeDomain(RawData_Out_1 , RawData_Out_2 , Lamda )
+                    ## Feature in range domain
+                    RangePos, PhaseValue = Feature_in_RangeDomain(RawData_Out_1 , RawData_Out_2 , Lamda )
 
 
