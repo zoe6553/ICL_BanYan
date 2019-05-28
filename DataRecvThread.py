@@ -5,6 +5,7 @@ from CommArithmetic import *
 from queue import Queue
 from PreDefine import enum
 from PreDefine import RadarParam
+import matplotlib.pyplot as plt
 
 import numpy as np
 
@@ -20,6 +21,7 @@ class DataRecvThread(QThread):
         if DevSelection == enum.USB_SERIAL:
             ## USB SERIAL
             self.DevSelection = enum.USB_SERIAL
+            self.usb = Param
         elif DevSelection == enum.FILE_SOURCE:
             ## Data From File
             self.DevSelection = enum.FILE_SOURCE
@@ -43,7 +45,7 @@ class DataRecvThread(QThread):
 
     def run(self):
         if self.DevSelection == enum.USB_SERIAL:
-            print('ToDo')
+            self.RunWithUSB()
         elif self.DevSelection == enum.FILE_SOURCE:
             self.RunWithFileData()
         elif self.DevSelection == enum.UART_SERIAL:
@@ -127,5 +129,26 @@ class DataRecvThread(QThread):
             self.uartDataIndex = self.uartDataIndex-UartHeadIndex[HeadCount-1]
 
             return self.CollectedData
+
+    def RunWithUSB(self):
+        self.usb.StartRadar()
+        while(self.working):
+            RawData = self.usb.ReadRawData()
+            RawDataLen = RawData.size
+            RawDataChannel = np.zeros((4,RawDataLen//4), dtype=np.int16)
+            for i in range(4):
+                RawDataChannel[0] = RawData[::4]
+                RawDataChannel[1] = RawData[1::4]
+                RawDataChannel[2] = RawData[2::4]
+                RawDataChannel[3] = RawData[3::4]
+
+            plt.plot(RawDataChannel[0],'r')
+            plt.plot(RawDataChannel[1],'g')
+            plt.plot(RawDataChannel[2],'b')
+            plt.plot(RawDataChannel[3],'r')
+            plt.show()
+
+            #print('recv queue: %d' % self.recvQueue.qsize())
+            self.recvQueue.put(RawDataChannel)
 
 

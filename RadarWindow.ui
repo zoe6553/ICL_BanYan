@@ -122,7 +122,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="bt_start_2">
+      <widget class="QPushButton" name="bt_config">
        <property name="minimumSize">
         <size>
          <width>80</width>
@@ -224,7 +224,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>1080</x>

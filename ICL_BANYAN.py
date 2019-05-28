@@ -7,11 +7,14 @@ from CommArithmetic import *
 from GestureArithmetic import *
 from DataRecvThread import *
 from DataAlgThread import *
+from UsbSerial import *
 from queue import Queue
 from PreDefine import enum
 
 import numpy as np
 import serial
+import ICL_USB
+import time
 
 
 class MyMainWindow(QMainWindow, Ui_MainWindow):
@@ -21,9 +24,10 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         self.setWindowTitle('BanYan Demo')
         self.algThread = DataAlgThread()
         self.recvThread = DataRecvThread()
-        self.recvQueue = Queue(10)
-        self.sendQueue = Queue(50)
-        self.resultQueue = Queue(50)
+        self.recvQueue = Queue(50)
+        self.sendQueue = Queue(500)
+        self.resultQueue = Queue(500)
+        self.usb = None
         
         self.setupUi(self)
         self.widget.setVisible(True)
@@ -76,7 +80,7 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
             self.bt_connect.setText('连接')
         elif index is enum.FILE_SOURCE:
             self.bt_connect.setText('目录')
-        elif index > enum.UART_SERIAL:
+        elif index >= enum.UART_SERIAL:
             self.bt_connect.setText('连接')
 
     def modulechange(self,index):
@@ -99,9 +103,16 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         self.algThread.SetParam(self.devSelect, self.recvQueue,self.sendQueue,self.resultQueue,self.fftShareBuf)
         self.algThread.start()
         if self.devSelect is enum.USB_SERIAL:
-            print('ToDo')
+            if self.usb is None:
+                self.usb = UsbSerial()
+            if self.usb.Is_Radar_Connect():
+                self.statusBar().showMessage('Find USB Dev')
+            else:
+                self.statusBar().showMessage('Do not find USB Dev')
+            self.recvThread.SetParam(enum.USB_SERIAL, self.usb, self.recvQueue)
         elif self.devSelect is enum.FILE_SOURCE:
             file,ok = QFileDialog.getOpenFileName(self, "打开文件", "./", "Data Files (*.dat);;Text Files (*.txt)")
+            self.statusBar().showMessage(file)
             self.recvThread.SetParam(enum.FILE_SOURCE,file,self.recvQueue)
         elif self.devSelect >= enum.UART_SERIAL:
             SerialName = self.SerialList[self.devSelect-2]
@@ -125,13 +136,9 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         #if self.devSelect == 2:
         self.recvThread.start()
         self.widget.setVisible(True)
-        #self.widget.mpl.plotFileData(4,self.RawData_Martix_I_1, self.RawData_Martix_Q_1, self.RawData_Martix_I_2, self.RawData_Martix_Q_2)
         self.widget.mpl.plotData(self.sendQueue,'串口原始数据')
-
         self.widget_2.setVisible(True)
         self.widget_2.mpl.plotData(self.resultQueue,'快速傅里叶变换')
-        #self.widget_2.setVisible(True)
-        #self.widget_2.mpl.start_dynamic_plot()
 
     @pyqtSlot()
     def on_bt_finish_clicked(self):
@@ -145,6 +152,27 @@ class MyMainWindow(QMainWindow, Ui_MainWindow):
         #self.recvThread.wait()
 
         self.close()
+
+    @pyqtSlot()
+    def on_bt_config_clicked(self):
+        print('click Config button')
+        for i in range(self.register.size):
+            self.usb.WrtieRadarRegister(self.register[i], self.registerValue[i])
+            time.sleep(0.01)
+            #print('address:'+ hex(self.register[i]) + ' value:' + hex(self.usb.ReadRadarRegister(self.register[i])))
+
+    @pyqtSlot()
+    def on_OpenRegFile_action_triggered(self):
+        file,ok = QFileDialog.getOpenFileName(self, "打开文件", "./", "Text Files (*.txt)")
+        RegisterTable = np.loadtxt(file,dtype=str)
+        self.register = np.zeros(RegisterTable.size,dtype = np.uint16)
+        self.registerValue = np.zeros(RegisterTable.size,dtype = np.uint16)
+        
+        for index in range(RegisterTable.size):
+            self.register[index] = int(RegisterTable[index][0:2],16)
+            self.registerValue[index] = int(RegisterTable[index][3:],16)
+
+        self.statusBar().showMessage('寄存器文件：'+ file)
 ## #####################################################################
 
 if __name__ == '__main__':

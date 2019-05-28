@@ -90,6 +90,7 @@ class MyMplCanvas(FigureCanvas):
 
     def update_FileData_Figure(self):
         result = self.sendQueue.get()
+        #print(self.sendQueue.qsize())
         if result.size == 4:
             print('will stop')
             self.timer.stop()

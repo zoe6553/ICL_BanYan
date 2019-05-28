@@ -10,6 +10,7 @@ from PreDefine import RadarParam
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 # 雷达参数定义
 C               = 3e8                           # 光速：3*10^8m/s
 Start_Freq      = 23.5e9                        # 起始频率：23.5GHz
@@ -38,6 +39,7 @@ class DataAlgThread(QThread):
     def __init__(self, parent=None):
         super(DataAlgThread,self).__init__(parent)
         self.working = True
+        self.index = 0
 
     def SetParam(self, DevSelection,recvQueue, sendQueue, resultQueue,shareFFTBuf):
         self.DevSelection = DevSelection
@@ -49,6 +51,13 @@ class DataAlgThread(QThread):
     def run(self):
         while self.working is True:
             RawDataMartix = self.recvQueue.get()
+            
+            self.index += 1
+            if self.DevSelection == enum.USB_SERIAL:                
+                #ChannelNum,ChirpNum = RawDataMartix.shape                
+                self.sendQueue.put(RawDataMartix[0][0:1999])
+                self.resultQueue.put(RawDataMartix[1][0:1999])
+
             if self.DevSelection == enum.UART_SERIAL:
                 self.sendQueue.put(RawDataMartix)
                 RawDataMartix = RawDataMartix - np.mean(RawDataMartix)
