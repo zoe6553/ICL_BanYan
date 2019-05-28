@@ -41,6 +41,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="RadarWindow.py" />
+    <Compile Include="UsbSerial.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="RadarWindow.ui" />
